@@ -20,7 +20,10 @@ const fullDateFormatter = new Intl.DateTimeFormat('ru-RU', {
   year: 'numeric',
 });
 
-const HOURS = Array.from({ length: 12 }, (_, index) => index + 9);
+const DISPLAY_HOURS = Array.from({ length: 12 }, (_, index) => index + 9);
+const TIME_OPTIONS = DISPLAY_HOURS.flatMap((hour) => ['00', '20', '40'].map((minutes) => `${String(hour).padStart(2, '0')}:${minutes}`)).filter(
+  (time) => time <= '20:00',
+);
 const SUBJECT_LABELS: Record<Subject, string> = {
   english: 'Английский',
   physics: 'Физика',
@@ -44,6 +47,10 @@ function getWeekDays(weekStart: string) {
 
 function toHourTime(hour: number) {
   return `${String(hour).padStart(2, '0')}:00`;
+}
+
+function getHourSlotTime(time: string) {
+  return toHourTime(Number(time.slice(0, 2)));
 }
 
 function createEmptyLesson(date: string, time: string): DraftLesson {
@@ -102,8 +109,9 @@ export function App() {
   )}`;
 
   const lessonsBySlot = useMemo(() => {
-    return lessons.reduce<Record<string, Lesson>>((slots, lesson) => {
-      slots[`${lesson.date}-${lesson.time}`] = lesson;
+    return lessons.reduce<Record<string, Lesson[]>>((slots, lesson) => {
+      const slotKey = `${lesson.date}-${getHourSlotTime(lesson.time)}`;
+      slots[slotKey] = [...(slots[slotKey] ?? []), lesson].sort((first, second) => first.time.localeCompare(second.time));
       return slots;
     }, {});
   }, [lessons]);
@@ -118,7 +126,7 @@ export function App() {
   }, [draft]);
 
   function openEditor(date: string, time: string) {
-    const existingLesson = lessonsBySlot[`${date}-${time}`];
+    const existingLesson = lessons.find((lesson) => lesson.date === date && lesson.time === time);
     setDraft(existingLesson ?? createEmptyLesson(date, time));
   }
 
@@ -282,45 +290,59 @@ export function App() {
               ))}
             </div>
 
-            {HOURS.map((hour) => {
+            {DISPLAY_HOURS.map((hour) => {
               const time = toHourTime(hour);
               return (
                 <div className="calendar-grid calendar-row" key={time}>
                   <div className="time-cell">{time}</div>
                   {weekDays.map((day) => {
-                    const lesson = lessonsBySlot[`${day}-${time}`];
+                    const slotLessons = lessonsBySlot[`${day}-${time}`] ?? [];
 
                     return (
                       <button
                         type="button"
-                        className={`slot ${lesson ? `has-lesson subject-${lesson.subject}` : ''}`}
+                        className={`slot ${slotLessons.length ? 'has-lesson' : ''}`}
                         key={`${day}-${time}`}
                         onClick={() => openEditor(day, time)}
                         onDragOver={(event) => event.preventDefault()}
                         onDrop={() => {
                           if (draggedLessonId) {
-                            void moveLesson(draggedLessonId, day, time);
+                            const draggedLesson = lessons.find((lesson) => lesson.id === draggedLessonId);
+                            const targetTime =
+                              draggedLesson && time !== '20:00' ? `${time.slice(0, 2)}:${draggedLesson.time.slice(3, 5)}` : time;
+                            void moveLesson(draggedLessonId, day, targetTime);
                             setDraggedLessonId(null);
                           }
                         }}
                         aria-label={`Ячейка ${fullDateFormatter.format(new Date(`${day}T12:00:00`))}, ${time}`}
                         disabled={isLoading || isSaving}
                       >
-                        {lesson ? (
-                          <article
-                            className="lesson-card"
-                            draggable={!isSaving}
-                            onDragStart={(event) => {
-                              event.stopPropagation();
-                              setDraggedLessonId(lesson.id);
-                            }}
-                            onDragEnd={() => setDraggedLessonId(null)}
-                          >
-                            <span>{SUBJECT_LABELS[lesson.subject]}</span>
-                            <strong>{lesson.student}</strong>
-                            {lesson.note && <small>{lesson.note}</small>}
-                            <Edit3 size={15} aria-hidden="true" />
-                          </article>
+                        {slotLessons.length ? (
+                          <span className="slot-lessons">
+                            {slotLessons.map((lesson) => (
+                              <article
+                                className={`lesson-card subject-${lesson.subject}`}
+                                draggable={!isSaving}
+                                key={lesson.id}
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  openEditor(day, lesson.time);
+                                }}
+                                onDragStart={(event) => {
+                                  event.stopPropagation();
+                                  setDraggedLessonId(lesson.id);
+                                }}
+                                onDragEnd={() => setDraggedLessonId(null)}
+                              >
+                                <span>
+                                  {SUBJECT_LABELS[lesson.subject]} · {lesson.time}
+                                </span>
+                                <strong>{lesson.student}</strong>
+                                {lesson.note && <small>{lesson.note}</small>}
+                                <Edit3 size={15} aria-hidden="true" />
+                              </article>
+                            ))}
+                          </span>
                         ) : (
                           <span className="empty-slot">
                             <Plus size={15} aria-hidden="true" />
@@ -385,9 +407,9 @@ export function App() {
               <label>
                 Начало
                 <select value={draft.time} onChange={(event) => setDraft({ ...draft, time: event.target.value })}>
-                  {HOURS.map((hour) => (
-                    <option value={toHourTime(hour)} key={hour}>
-                      {toHourTime(hour)}
+                  {TIME_OPTIONS.map((time) => (
+                    <option value={time} key={time}>
+                      {time}
                     </option>
                   ))}
                 </select>

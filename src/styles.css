@@ -70,11 +70,13 @@ button {
   position: sticky;
   top: 12px;
   min-height: calc(100vh - 28px);
-  overflow: hidden;
+  overflow: visible;
   border-radius: 8px;
   background:
     linear-gradient(180deg, rgba(48, 30, 23, 0.98), rgba(93, 58, 31, 0.95) 52%, rgba(31, 67, 61, 0.94)),
     #2a1b15;
+  pointer-events: none;
+  z-index: 3;
 }
 
 .character-panel::before {
@@ -101,12 +103,13 @@ button {
 }
 
 .character-panel img {
-  width: 100%;
+  width: 124%;
   height: calc(100vh - 28px);
   min-height: 680px;
   display: block;
   object-fit: cover;
-  object-position: 50% 10%;
+  object-position: 56% 10%;
+  transform: translateX(-14%);
   filter: drop-shadow(0 20px 22px rgba(0, 0, 0, 0.32));
 }
 
@@ -287,7 +290,7 @@ p {
   background:
     linear-gradient(90deg, rgba(255, 252, 244, 0.28), rgba(255, 252, 244, 0.54)),
     linear-gradient(rgba(255, 252, 244, 0.3), rgba(255, 252, 244, 0.62)),
-    url("./assets/chibi-classroom.png") 42% center / cover no-repeat;
+    url("./assets/chibi-classroom-expanded.png") 42% center / cover no-repeat;
   opacity: 0.42;
 }
 
@@ -394,9 +397,14 @@ p {
   opacity: 1;
 }
 
+.slot-lessons {
+  display: grid;
+  gap: 5px;
+}
+
 .lesson-card {
-  height: 100%;
-  min-height: 58px;
+  width: 100%;
+  min-height: 52px;
   position: relative;
   overflow: hidden;
   display: grid;
@@ -443,30 +451,37 @@ p {
   color: #8a6022;
 }
 
-.subject-english .lesson-card {
+.subject-english .lesson-card,
+.lesson-card.subject-english {
   border-color: rgba(120, 98, 75, 0.58);
   background: linear-gradient(180deg, #f4ede2, #dfd0bc);
 }
 
-.subject-english .lesson-card::before {
+.subject-english .lesson-card::before,
+.lesson-card.subject-english::before {
   background: #7d6042;
 }
 
 .subject-english .lesson-card span,
-.subject-english .lesson-card svg {
+.subject-english .lesson-card svg,
+.lesson-card.subject-english span,
+.lesson-card.subject-english svg {
   color: #654a31;
 }
 
-.subject-english .lesson-card small {
+.subject-english .lesson-card small,
+.lesson-card.subject-english small {
   color: #4f3d2c;
 }
 
-.subject-physics .lesson-card {
+.subject-physics .lesson-card,
+.lesson-card.subject-physics {
   border-color: rgba(184, 132, 37, 0.5);
   background: linear-gradient(180deg, #fff8e6, #f7ead0);
 }
 
-.subject-physics .lesson-card::before {
+.subject-physics .lesson-card::before,
+.lesson-card.subject-physics::before {
   background: #d7a33d;
 }
 
@@ -596,9 +611,11 @@ p {
   }
 
   .character-panel img {
+    width: 112%;
     height: 440px;
     min-height: 0;
     object-position: 50% 8%;
+    transform: translateX(-6%);
   }
 
   .schedule-panel {
@@ -620,8 +637,10 @@ p {
   }
 
   .character-panel img {
+    width: 100%;
     height: 360px;
     object-position: 50% 12%;
+    transform: none;
   }
 
   .topbar {
