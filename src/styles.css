@@ -1,0 +1,681 @@
+:root {
+  color: #241914;
+  background:
+    linear-gradient(rgba(255, 250, 238, 0.9), rgba(255, 250, 238, 0.9)),
+    repeating-linear-gradient(135deg, rgba(180, 132, 52, 0.12) 0 1px, transparent 1px 28px),
+    #f6efe0;
+  font-family:
+    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  min-width: 320px;
+  min-height: 100vh;
+  margin: 0;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(90deg, rgba(32, 21, 16, 0.09), transparent 18%, transparent 82%, rgba(32, 21, 16, 0.09)),
+    linear-gradient(180deg, rgba(47, 77, 71, 0.11), transparent 220px);
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+.app-shell {
+  width: min(1680px, calc(100% - 32px));
+  margin: 0 auto;
+  padding: 14px 0 40px;
+}
+
+.layout-shell {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(250px, 330px);
+  align-items: start;
+  gap: 22px;
+}
+
+.character-panel,
+.calendar,
+.lesson-modal,
+.calendar-toolbar,
+.status-message {
+  border: 1px solid rgba(173, 127, 48, 0.34);
+  box-shadow:
+    0 18px 45px rgba(55, 34, 18, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.62);
+}
+
+.character-panel {
+  position: sticky;
+  top: 12px;
+  min-height: calc(100vh - 28px);
+  overflow: hidden;
+  border-radius: 8px;
+  background:
+    linear-gradient(180deg, rgba(48, 30, 23, 0.98), rgba(93, 58, 31, 0.95) 52%, rgba(31, 67, 61, 0.94)),
+    #2a1b15;
+}
+
+.character-panel::before {
+  content: "";
+  position: absolute;
+  inset: 14px;
+  z-index: 1;
+  border: 1px solid rgba(232, 191, 95, 0.34);
+  border-radius: 6px;
+  pointer-events: none;
+}
+
+.character-panel::after {
+  content: "Zhongli";
+  position: absolute;
+  right: 18px;
+  bottom: 18px;
+  z-index: 2;
+  color: rgba(255, 245, 218, 0.82);
+  font-size: 13px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.character-panel img {
+  width: 100%;
+  height: calc(100vh - 28px);
+  min-height: 680px;
+  display: block;
+  object-fit: cover;
+  object-position: 50% 10%;
+  filter: drop-shadow(0 20px 22px rgba(0, 0, 0, 0.32));
+}
+
+.schedule-panel {
+  min-width: 0;
+}
+
+.topbar {
+  display: grid;
+  grid-template-columns: minmax(260px, 1fr) auto;
+  align-items: stretch;
+  gap: 16px;
+  margin-bottom: 10px;
+}
+
+.hero-copy {
+  min-height: 58px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border-radius: 8px;
+  padding: 14px 18px;
+  background:
+    linear-gradient(130deg, rgba(255, 251, 240, 0.95), rgba(236, 220, 181, 0.9)),
+    repeating-linear-gradient(90deg, rgba(176, 128, 45, 0.12) 0 1px, transparent 1px 34px);
+  border: 1px solid rgba(173, 127, 48, 0.34);
+  box-shadow:
+    0 18px 45px rgba(55, 34, 18, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.62);
+}
+
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  color: #8a6022;
+  font-size: 13px;
+  font-weight: 900;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.hero-line {
+  color: #5d4631;
+  font-size: 14px;
+  font-weight: 800;
+  text-align: right;
+}
+
+h2,
+p {
+  margin: 0;
+}
+
+.week-controls,
+.lesson-modal footer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.week-controls {
+  align-self: start;
+  justify-content: flex-end;
+}
+
+.icon-button,
+.today-button,
+.primary-button,
+.danger-button {
+  min-height: 42px;
+  border: 1px solid rgba(172, 126, 47, 0.45);
+  border-radius: 8px;
+  background: rgba(255, 251, 240, 0.92);
+  color: #2a1b15;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+
+.icon-button {
+  width: 42px;
+  display: inline-grid;
+  place-items: center;
+}
+
+.today-button {
+  padding: 0 16px;
+  font-weight: 900;
+}
+
+.icon-button:hover,
+.today-button:hover,
+.primary-button:hover {
+  border-color: #d7a33d;
+  background: #fff8e6;
+}
+
+.calendar-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 8px;
+  border-radius: 8px;
+  background: rgba(255, 251, 240, 0.78);
+  color: #5d4631;
+  padding: 9px 12px;
+  backdrop-filter: blur(12px);
+}
+
+.calendar-toolbar > div {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.calendar-toolbar strong {
+  color: #2a1b15;
+}
+
+.storage-status {
+  justify-content: flex-end;
+}
+
+.storage-status span {
+  min-height: 30px;
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid rgba(177, 132, 52, 0.48);
+  border-radius: 999px;
+  padding: 0 12px;
+  background:
+    linear-gradient(180deg, rgba(255, 246, 220, 0.94), rgba(232, 191, 95, 0.28)),
+    rgba(255, 251, 240, 0.86);
+  color: #6f451b;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.storage-status[data-mode='online'] span {
+  border-color: rgba(215, 163, 61, 0.68);
+  background:
+    linear-gradient(180deg, rgba(255, 242, 198, 0.96), rgba(190, 126, 36, 0.38)),
+    rgba(255, 251, 240, 0.92);
+  color: #5f3516;
+}
+
+.small-icon-button {
+  width: 34px;
+  min-height: 34px;
+}
+
+.status-message {
+  margin: 0 0 12px;
+  border-radius: 8px;
+  background: #fff3df;
+  color: #8a3e16;
+  padding: 10px 12px;
+  font-weight: 800;
+}
+
+.calendar {
+  position: relative;
+  overflow-x: auto;
+  border-radius: 8px;
+  background:
+    linear-gradient(rgba(255, 252, 244, 0.94), rgba(255, 252, 244, 0.94)),
+    #fffaf0;
+}
+
+.calendar::before {
+  content: "";
+  position: absolute;
+  inset: 46px 0 0;
+  min-width: 850px;
+  pointer-events: none;
+  background:
+    linear-gradient(90deg, rgba(255, 252, 244, 0.28), rgba(255, 252, 244, 0.54)),
+    linear-gradient(rgba(255, 252, 244, 0.3), rgba(255, 252, 244, 0.62)),
+    url("./assets/chibi-classroom.png") 42% center / cover no-repeat;
+  opacity: 0.42;
+}
+
+.calendar-grid {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: 66px repeat(7, minmax(112px, 1fr));
+  min-width: 850px;
+}
+
+.calendar-header {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background:
+    linear-gradient(180deg, rgba(55, 35, 24, 0.98), rgba(88, 57, 32, 0.98)),
+    #372318;
+  border-bottom: 1px solid rgba(221, 173, 74, 0.45);
+}
+
+.time-heading,
+.day-heading,
+.time-cell {
+  min-height: 46px;
+  display: flex;
+  align-items: center;
+  padding: 8px;
+}
+
+.time-heading,
+.time-cell {
+  justify-content: center;
+  color: #8a6022;
+  font-weight: 900;
+  border-right: 1px solid rgba(189, 148, 76, 0.22);
+}
+
+.time-heading {
+  color: #e8bf5f;
+}
+
+.day-heading {
+  flex-direction: column;
+  justify-content: center;
+  gap: 3px;
+  border-right: 1px solid rgba(232, 191, 95, 0.18);
+  color: #fff5da;
+  text-transform: capitalize;
+}
+
+.day-heading:last-child,
+.slot:last-child {
+  border-right: 0;
+}
+
+.day-heading span {
+  color: #d9bc7a;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.calendar-row {
+  border-bottom: 1px solid rgba(189, 148, 76, 0.2);
+}
+
+.calendar-row:last-child {
+  border-bottom: 0;
+}
+
+.slot {
+  min-height: 72px;
+  position: relative;
+  border: 0;
+  border-right: 1px solid rgba(189, 148, 76, 0.2);
+  background: rgba(255, 252, 244, 0.32);
+  padding: 6px;
+  text-align: left;
+}
+
+.slot:disabled {
+  cursor: wait;
+}
+
+.slot:hover,
+.slot:focus-visible {
+  background: rgba(232, 191, 95, 0.14);
+  outline: none;
+}
+
+.empty-slot {
+  width: 100%;
+  height: 100%;
+  min-height: 58px;
+  display: grid;
+  place-items: center;
+  color: #b18434;
+  opacity: 0;
+  transition: opacity 140ms ease;
+}
+
+.slot:hover .empty-slot,
+.slot:focus-visible .empty-slot {
+  opacity: 1;
+}
+
+.lesson-card {
+  height: 100%;
+  min-height: 58px;
+  position: relative;
+  overflow: hidden;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-content: start;
+  gap: 2px 7px;
+  padding: 8px;
+  border: 1px solid;
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 10px 22px rgba(55, 34, 18, 0.13);
+}
+
+.lesson-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 4px;
+  background: #d7a33d;
+}
+
+.lesson-card span {
+  color: #74501f;
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.lesson-card strong {
+  grid-column: 1 / -1;
+  color: #241914;
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+
+.lesson-card small {
+  grid-column: 1 / -1;
+  color: #5d4631;
+  font-size: 12px;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+.lesson-card svg {
+  color: #8a6022;
+}
+
+.subject-english .lesson-card {
+  border-color: rgba(120, 98, 75, 0.58);
+  background: linear-gradient(180deg, #f4ede2, #dfd0bc);
+}
+
+.subject-english .lesson-card::before {
+  background: #7d6042;
+}
+
+.subject-english .lesson-card span,
+.subject-english .lesson-card svg {
+  color: #654a31;
+}
+
+.subject-english .lesson-card small {
+  color: #4f3d2c;
+}
+
+.subject-physics .lesson-card {
+  border-color: rgba(184, 132, 37, 0.5);
+  background: linear-gradient(180deg, #fff8e6, #f7ead0);
+}
+
+.subject-physics .lesson-card::before {
+  background: #d7a33d;
+}
+
+.calendar-state {
+  position: absolute;
+  inset: 46px 0 0;
+  display: grid;
+  place-items: center;
+  min-width: 850px;
+  background: rgba(255, 251, 240, 0.78);
+  color: #5d4631;
+  font-weight: 900;
+}
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  background: rgba(31, 22, 18, 0.5);
+}
+
+.lesson-modal {
+  width: min(520px, 100%);
+  display: grid;
+  gap: 16px;
+  padding: 20px;
+  border-radius: 8px;
+  background:
+    linear-gradient(rgba(255, 251, 240, 0.97), rgba(255, 251, 240, 0.97)),
+    repeating-linear-gradient(135deg, rgba(176, 128, 45, 0.12) 0 1px, transparent 1px 24px);
+}
+
+.lesson-modal header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.lesson-modal header p {
+  color: #8a6022;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.lesson-modal h2 {
+  margin-top: 3px;
+  color: #2a1b15;
+  font-size: 24px;
+}
+
+.lesson-modal label {
+  display: grid;
+  gap: 7px;
+  color: #5d4631;
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.lesson-modal input,
+.lesson-modal select,
+.lesson-modal textarea {
+  width: 100%;
+  border: 1px solid rgba(172, 126, 47, 0.38);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.88);
+  color: #241914;
+  padding: 11px 12px;
+}
+
+.lesson-modal input:focus,
+.lesson-modal select:focus,
+.lesson-modal textarea:focus {
+  border-color: #d7a33d;
+  outline: 3px solid rgba(215, 163, 61, 0.2);
+}
+
+.lesson-modal textarea {
+  resize: vertical;
+}
+
+.modal-row {
+  display: grid;
+  grid-template-columns: 1fr 150px;
+  gap: 12px;
+}
+
+.lesson-modal footer {
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+.primary-button,
+.danger-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 16px;
+  font-weight: 900;
+}
+
+.primary-button {
+  border-color: #b18434;
+  background: linear-gradient(180deg, #d7a33d, #a66e22);
+  color: #fff9e8;
+}
+
+.danger-button {
+  margin-right: auto;
+  border-color: rgba(139, 61, 44, 0.34);
+  color: #8b3d2c;
+}
+
+@media (max-width: 1180px) {
+  .layout-shell {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .character-panel {
+    position: relative;
+    top: auto;
+    min-height: 360px;
+  }
+
+  .character-panel img {
+    height: 440px;
+    min-height: 0;
+    object-position: 50% 8%;
+  }
+
+  .schedule-panel {
+    grid-column: 1 / -1;
+  }
+
+  .topbar {
+    grid-template-columns: 1fr auto;
+  }
+}
+
+@media (max-width: 900px) {
+  .layout-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .character-panel {
+    min-height: 280px;
+  }
+
+  .character-panel img {
+    height: 360px;
+    object-position: 50% 12%;
+  }
+
+  .topbar {
+    grid-template-columns: 1fr;
+  }
+
+  .week-controls {
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 760px) {
+  .app-shell {
+    width: min(100% - 20px, 1500px);
+    padding-top: 18px;
+  }
+
+  .hero-copy {
+    min-height: 0;
+    align-items: flex-start;
+    flex-direction: column;
+    padding: 22px;
+  }
+
+  .hero-line {
+    text-align: left;
+  }
+
+  .character-panel img {
+    height: 320px;
+    object-position: 50% 9%;
+  }
+
+  .week-controls {
+    width: 100%;
+  }
+
+  .today-button {
+    flex: 1;
+  }
+
+  .calendar-toolbar {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .calendar-toolbar > div,
+  .storage-status {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .modal-row {
+    grid-template-columns: 1fr;
+  }
+}
