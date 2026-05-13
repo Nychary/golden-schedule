@@ -286,11 +286,11 @@ export function App() {
           <form className="login-form" onSubmit={handleLogin}>
             <label>
               Логин
-              <input autoFocus value={login} onChange={(event) => setLogin(event.target.value)} placeholder="Zhongli" />
+              <input autoFocus value={login} onChange={(event) => setLogin(event.target.value)} />
             </label>
             <label>
               Пароль
-              <input type="password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="LapisDei" />
+              <input type="password" value={password} onChange={(event) => setPassword(event.target.value)} />
             </label>
             {authError && <p className="auth-error">{authError}</p>}
             <button type="submit" className="primary-button">
