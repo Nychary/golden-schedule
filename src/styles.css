@@ -354,10 +354,10 @@ p {
   min-width: 850px;
   pointer-events: none;
   background:
-    linear-gradient(90deg, rgba(255, 252, 244, 0.28), rgba(255, 252, 244, 0.54)),
-    linear-gradient(rgba(255, 252, 244, 0.3), rgba(255, 252, 244, 0.62)),
-    url("./assets/chibi-classroom-expanded.png") 46% center / 92% auto no-repeat;
-  opacity: 0.48;
+    linear-gradient(90deg, rgba(255, 252, 244, 0.2) 0%, rgba(255, 252, 244, 0.38) 58%, rgba(255, 252, 244, 0.66) 100%),
+    linear-gradient(rgba(255, 252, 244, 0.2), rgba(255, 252, 244, 0.56)),
+    url("./assets/chibi-classroom-expanded.png") left bottom / auto 100% no-repeat;
+  opacity: 0.5;
 }
 
 .calendar-grid {
