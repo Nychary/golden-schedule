@@ -1,5 +1,5 @@
 import { FormEvent, useEffect, useMemo, useState } from 'react';
-import { ChevronLeft, ChevronRight, Edit3, Plus, RefreshCw, Save, Sparkles, Trash2, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Edit3, KeyRound, LogOut, Plus, RefreshCw, Save, Sparkles, Trash2, X } from 'lucide-react';
 import type { DraftLesson, Lesson, Subject } from './types';
 import zhongliTeacher from './assets/zhongli-teacher-glasses.png';
 import {
@@ -24,6 +24,9 @@ const DISPLAY_HOURS = Array.from({ length: 12 }, (_, index) => index + 9);
 const TIME_OPTIONS = DISPLAY_HOURS.flatMap((hour) => ['00', '20', '40'].map((minutes) => `${String(hour).padStart(2, '0')}:${minutes}`)).filter(
   (time) => time <= '20:00',
 );
+const AUTH_LOGIN = 'Zhongli';
+const AUTH_PASSWORD = 'LapisDei';
+const AUTH_STORAGE_KEY = 'golden-schedule-authenticated';
 const SUBJECT_LABELS: Record<Subject, string> = {
   english: 'Английский',
   physics: 'Физика',
@@ -68,6 +71,10 @@ function sortLessons(lessons: Lesson[]) {
 }
 
 export function App() {
+  const [isAuthenticated, setIsAuthenticated] = useState(() => localStorage.getItem(AUTH_STORAGE_KEY) === 'true');
+  const [login, setLogin] = useState('');
+  const [password, setPassword] = useState('');
+  const [authError, setAuthError] = useState('');
   const [weekStart, setWeekStart] = useState(() => startOfWeek(getTodayIso()));
   const [lessons, setLessons] = useState<Lesson[]>([]);
   const [draft, setDraft] = useState<DraftLesson | null>(null);
@@ -91,6 +98,10 @@ export function App() {
   }
 
   useEffect(() => {
+    if (!isAuthenticated) {
+      return;
+    }
+
     void refreshLessons();
 
     function refreshOnFocus() {
@@ -101,7 +112,7 @@ export function App() {
 
     window.addEventListener('focus', refreshOnFocus);
     return () => window.removeEventListener('focus', refreshOnFocus);
-  }, []);
+  }, [isAuthenticated]);
 
   const weekDays = useMemo(() => getWeekDays(weekStart), [weekStart]);
   const currentWeekLabel = `${dateFormatter.format(new Date(`${weekDays[0]}T12:00:00`))} - ${dateFormatter.format(
@@ -145,6 +156,27 @@ export function App() {
       subject,
       student: subjectStudents.includes(draft.student) ? draft.student : '',
     });
+  }
+
+  function handleLogin(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (login.trim() === AUTH_LOGIN && password === AUTH_PASSWORD) {
+      localStorage.setItem(AUTH_STORAGE_KEY, 'true');
+      setIsAuthenticated(true);
+      setAuthError('');
+      setPassword('');
+      return;
+    }
+
+    setAuthError('Контракт не найден. Проверь логин и пароль.');
+  }
+
+  function handleLogout() {
+    localStorage.removeItem(AUTH_STORAGE_KEY);
+    setIsAuthenticated(false);
+    setLessons([]);
+    setDraft(null);
   }
 
   async function saveLesson(event: FormEvent<HTMLFormElement>) {
@@ -239,6 +271,42 @@ export function App() {
     }
   }
 
+  if (!isAuthenticated) {
+    return (
+      <main className="app-shell login-shell">
+        <section className="login-card" aria-label="Вход в расписание">
+          <div className="login-copy">
+            <p className="eyebrow">
+              <Sparkles size={15} />
+              Золотой распорядок
+            </p>
+            <h1>Контракт ожидает подписи</h1>
+          </div>
+
+          <form className="login-form" onSubmit={handleLogin}>
+            <label>
+              Логин
+              <input autoFocus value={login} onChange={(event) => setLogin(event.target.value)} placeholder="Zhongli" />
+            </label>
+            <label>
+              Пароль
+              <input type="password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="LapisDei" />
+            </label>
+            {authError && <p className="auth-error">{authError}</p>}
+            <button type="submit" className="primary-button">
+              <KeyRound size={17} />
+              Войти
+            </button>
+          </form>
+        </section>
+
+        <aside className="character-panel login-character" aria-label="Декоративный портрет Чжун Ли">
+          <img src={zhongliTeacher} alt="Чжун Ли" />
+        </aside>
+      </main>
+    );
+  }
+
   return (
     <main className="app-shell">
       <div className="layout-shell">
@@ -252,6 +320,9 @@ export function App() {
               <p className="hero-line">Контракты соблюдаются, уроки выполняются</p>
             </div>
             <div className="week-controls" aria-label="Навигация по неделям">
+              <button type="button" className="icon-button" onClick={handleLogout} title="Выйти">
+                <LogOut size={17} />
+              </button>
               <button type="button" className="icon-button" onClick={() => setWeekStart(addDays(weekStart, -7))} title="Предыдущая неделя">
                 <ChevronLeft size={18} />
               </button>

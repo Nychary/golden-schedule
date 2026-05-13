@@ -55,11 +55,21 @@ button {
   gap: 22px;
 }
 
+.login-shell {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: minmax(320px, 520px) minmax(250px, 330px);
+  align-items: center;
+  justify-content: center;
+  gap: 22px;
+}
+
 .character-panel,
 .calendar,
 .lesson-modal,
 .calendar-toolbar,
-.status-message {
+.status-message,
+.login-card {
   border: 1px solid rgba(173, 127, 48, 0.34);
   box-shadow:
     0 18px 45px rgba(55, 34, 18, 0.12),
@@ -137,6 +147,65 @@ button {
   box-shadow:
     0 18px 45px rgba(55, 34, 18, 0.12),
     inset 0 1px 0 rgba(255, 255, 255, 0.62);
+}
+
+.login-card {
+  display: grid;
+  gap: 22px;
+  border-radius: 8px;
+  padding: 28px;
+  background:
+    linear-gradient(130deg, rgba(255, 251, 240, 0.96), rgba(236, 220, 181, 0.92)),
+    repeating-linear-gradient(90deg, rgba(176, 128, 45, 0.12) 0 1px, transparent 1px 34px);
+}
+
+.login-copy {
+  display: grid;
+  gap: 10px;
+}
+
+.login-copy h1 {
+  margin: 0;
+  color: #2a1b15;
+  font-size: clamp(30px, 5vw, 48px);
+  line-height: 1;
+  letter-spacing: 0;
+}
+
+.login-form {
+  display: grid;
+  gap: 14px;
+}
+
+.login-form label {
+  display: grid;
+  gap: 7px;
+  color: #5d4631;
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.login-form input {
+  width: 100%;
+  border: 1px solid rgba(172, 126, 47, 0.38);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.88);
+  color: #241914;
+  padding: 11px 12px;
+}
+
+.login-form input:focus {
+  border-color: #d7a33d;
+  outline: 3px solid rgba(215, 163, 61, 0.2);
+}
+
+.auth-error {
+  border: 1px solid rgba(139, 61, 44, 0.28);
+  border-radius: 8px;
+  background: rgba(255, 243, 223, 0.82);
+  color: #8b3d2c;
+  padding: 10px 12px;
+  font-weight: 800;
 }
 
 .eyebrow {
@@ -287,8 +356,8 @@ p {
   background:
     linear-gradient(90deg, rgba(255, 252, 244, 0.28), rgba(255, 252, 244, 0.54)),
     linear-gradient(rgba(255, 252, 244, 0.3), rgba(255, 252, 244, 0.62)),
-    url("./assets/chibi-classroom-expanded.png") 42% center / cover no-repeat;
-  opacity: 0.42;
+    url("./assets/chibi-classroom-expanded.png") 46% center / 92% auto no-repeat;
+  opacity: 0.48;
 }
 
 .calendar-grid {
@@ -601,6 +670,10 @@ p {
     grid-template-columns: 1fr 1fr;
   }
 
+  .login-shell {
+    grid-template-columns: minmax(320px, 520px) minmax(240px, 300px);
+  }
+
   .character-panel {
     position: relative;
     top: auto;
@@ -623,7 +696,8 @@ p {
 }
 
 @media (max-width: 900px) {
-  .layout-shell {
+  .layout-shell,
+  .login-shell {
     grid-template-columns: 1fr;
   }
 
