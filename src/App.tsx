@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useMemo, useState } from 'react';
+import { type CSSProperties, type FormEvent, useEffect, useMemo, useState } from 'react';
 import { ChevronLeft, ChevronRight, Edit3, KeyRound, LogOut, Plus, RefreshCw, Save, Sparkles, Trash2, UserPlus, Users, X } from 'lucide-react';
 import type { DraftLesson, DraftStudent, Lesson, Student, Subject } from './types';
 import zhongliTeacher from './assets/zhongli-teacher-glasses.png';
@@ -25,13 +25,15 @@ const fullDateFormatter = new Intl.DateTimeFormat('ru-RU', {
 });
 
 const DISPLAY_HOURS = Array.from({ length: 12 }, (_, index) => index + 9);
-const TIME_OPTIONS = DISPLAY_HOURS.flatMap((hour) => ['00', '20', '40'].map((minutes) => `${String(hour).padStart(2, '0')}:${minutes}`)).filter(
-  (time) => time <= '20:00',
-);
+const HOUR_OPTIONS = DISPLAY_HOURS.map((hour) => String(hour).padStart(2, '0'));
+const MINUTE_OPTIONS = Array.from({ length: 12 }, (_, index) => String(index * 5).padStart(2, '0'));
+const WEEKLY_SERIES_LENGTH = 26;
 const SUBJECT_LABELS: Record<Subject, string> = {
   english: 'Английский',
   physics: 'Физика',
 };
+
+type LessonRepeatMode = 'single' | 'weekly';
 
 function startOfWeek(isoDate: string) {
   const date = new Date(`${isoDate}T12:00:00`);
@@ -50,6 +52,29 @@ function toHourTime(hour: number) {
 
 function getHourSlotTime(time: string) {
   return toHourTime(Number(time.slice(0, 2)));
+}
+
+function getTimeHour(time: string) {
+  return time.slice(0, 2);
+}
+
+function getTimeMinutes(time: string) {
+  return time.slice(3, 5);
+}
+
+function getMinuteOffset(time: string) {
+  return Number(getTimeMinutes(time));
+}
+
+function getMinuteOptions(time: string) {
+  const currentMinutes = getTimeMinutes(time);
+  return MINUTE_OPTIONS.includes(currentMinutes)
+    ? MINUTE_OPTIONS
+    : [...MINUTE_OPTIONS, currentMinutes].sort((first, second) => Number(first) - Number(second));
+}
+
+function composeTime(hour: string, minutes: string) {
+  return `${hour}:${minutes}`;
 }
 
 function createEmptyLesson(date: string, time: string): DraftLesson {
@@ -100,6 +125,7 @@ export function App() {
   const [lessons, setLessons] = useState<Lesson[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
   const [draft, setDraft] = useState<DraftLesson | null>(null);
+  const [lessonRepeatMode, setLessonRepeatMode] = useState<LessonRepeatMode>('single');
   const [studentDraft, setStudentDraft] = useState<DraftStudent>(() => createEmptyStudent());
   const [isStudentManagerOpen, setIsStudentManagerOpen] = useState(false);
   const [draggedLessonId, setDraggedLessonId] = useState<string | null>(null);
@@ -226,10 +252,12 @@ export function App() {
   function openEditor(date: string, time: string) {
     const existingLesson = lessons.find((lesson) => lesson.date === date && lesson.time === time);
     setDraft(existingLesson ?? createEmptyLesson(date, time));
+    setLessonRepeatMode('single');
   }
 
   function closeEditor() {
     setDraft(null);
+    setLessonRepeatMode('single');
   }
 
   function updateDraftSubject(subject: Subject) {
@@ -291,19 +319,34 @@ export function App() {
       return;
     }
 
-    const normalizedLesson: Lesson = {
-      id: draft.id ?? crypto.randomUUID(),
-      student: draft.student.trim(),
-      subject: draft.subject,
-      date: draft.date,
-      time: draft.time,
-      note: draft.note.trim(),
-    };
+    const normalizedLessons: Lesson[] =
+      !draft.id && lessonRepeatMode === 'weekly'
+        ? Array.from({ length: WEEKLY_SERIES_LENGTH }, (_, index) => ({
+            id: crypto.randomUUID(),
+            student: draft.student.trim(),
+            subject: draft.subject,
+            date: addDays(draft.date, index * 7),
+            time: draft.time,
+            note: draft.note.trim(),
+          }))
+        : [
+            {
+              id: draft.id ?? crypto.randomUUID(),
+              student: draft.student.trim(),
+              subject: draft.subject,
+              date: draft.date,
+              time: draft.time,
+              note: draft.note.trim(),
+            },
+          ];
+
+    const changedLessonIds = new Set(normalizedLessons.map((lesson) => lesson.id));
+    const changedSlots = new Set(normalizedLessons.map((lesson) => `${lesson.date}-${lesson.time}`));
 
     const previousLessons = lessons;
     const optimisticLessons = sortLessons([
-      ...lessons.filter((lesson) => lesson.id !== normalizedLesson.id && (lesson.date !== normalizedLesson.date || lesson.time !== normalizedLesson.time)),
-      normalizedLesson,
+      ...lessons.filter((lesson) => !changedLessonIds.has(lesson.id) && !changedSlots.has(`${lesson.date}-${lesson.time}`)),
+      ...normalizedLessons,
     ]);
 
     setLessons(optimisticLessons);
@@ -312,7 +355,9 @@ export function App() {
     closeEditor();
 
     try {
-      await saveLessonToStorage(normalizedLesson);
+      for (const lesson of normalizedLessons) {
+        await saveLessonToStorage(lesson);
+      }
       await refreshLessons();
     } catch {
       setLessons(previousLessons);
@@ -592,6 +637,7 @@ export function App() {
                                 className={`lesson-card subject-${lesson.subject}`}
                                 draggable={!isSaving}
                                 key={lesson.id}
+                                style={{ '--lesson-offset': `${(getMinuteOffset(lesson.time) / 60) * 100}%` } as CSSProperties}
                                 onClick={(event) => {
                                   event.stopPropagation();
                                   openEditor(day, lesson.time);
@@ -672,21 +718,64 @@ export function App() {
               </button>
             )}
 
+            {!draft.id && (
+              <fieldset className="repeat-fieldset">
+                <legend>Тип занятия</legend>
+                <div className="segmented-control">
+                  <label className={lessonRepeatMode === 'single' ? 'is-active' : ''}>
+                    <input
+                      type="radio"
+                      name="lesson-repeat"
+                      value="single"
+                      checked={lessonRepeatMode === 'single'}
+                      onChange={() => setLessonRepeatMode('single')}
+                    />
+                    Разово
+                  </label>
+                  <label className={lessonRepeatMode === 'weekly' ? 'is-active' : ''}>
+                    <input
+                      type="radio"
+                      name="lesson-repeat"
+                      value="weekly"
+                      checked={lessonRepeatMode === 'weekly'}
+                      onChange={() => setLessonRepeatMode('weekly')}
+                    />
+                    Постоянно
+                  </label>
+                </div>
+              </fieldset>
+            )}
+
             <div className="modal-row">
               <label>
                 Дата
                 <input type="date" value={draft.date} onChange={(event) => setDraft({ ...draft, date: event.target.value })} />
               </label>
-              <label>
-                Начало
-                <select value={draft.time} onChange={(event) => setDraft({ ...draft, time: event.target.value })}>
-                  {TIME_OPTIONS.map((time) => (
-                    <option value={time} key={time}>
-                      {time}
-                    </option>
-                  ))}
-                </select>
-              </label>
+              <fieldset className="time-fieldset">
+                <legend>Начало</legend>
+                <div className="time-parts">
+                  <label>
+                    Часы
+                    <select value={getTimeHour(draft.time)} onChange={(event) => setDraft({ ...draft, time: composeTime(event.target.value, getTimeMinutes(draft.time)) })}>
+                      {HOUR_OPTIONS.map((hour) => (
+                        <option value={hour} key={hour}>
+                          {hour}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label>
+                    Минуты
+                    <select value={getTimeMinutes(draft.time)} onChange={(event) => setDraft({ ...draft, time: composeTime(getTimeHour(draft.time), event.target.value) })}>
+                      {getMinuteOptions(draft.time).map((minutes) => (
+                        <option value={minutes} key={minutes}>
+                          {minutes}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                </div>
+              </fieldset>
             </div>
 
             <label>
