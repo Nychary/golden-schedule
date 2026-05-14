@@ -1,5 +1,12 @@
 export type Subject = 'english' | 'physics';
 
+export type Student = {
+  id: string;
+  firstName: string;
+  lastName: string;
+  subject: Subject;
+};
+
 export type Lesson = {
   id: string;
   student: string;
@@ -10,3 +17,5 @@ export type Lesson = {
 };
 
 export type DraftLesson = Omit<Lesson, 'id'> & { id?: string };
+
+export type DraftStudent = Omit<Student, 'id'>;

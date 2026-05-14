@@ -1,14 +1,8 @@
-import { createClient } from '@supabase/supabase-js';
-import type { Lesson, Subject } from './types';
+import type { Lesson, Student, Subject } from './types';
+import { supabase } from './supabaseClient';
 
 const STORAGE_KEY = 'tutor-scheduler-lessons-v1';
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string | undefined;
-const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
-
-const supabase =
-  SUPABASE_URL && SUPABASE_ANON_KEY
-    ? createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
-    : null;
+const STUDENTS_STORAGE_KEY = 'tutor-scheduler-students-v1';
 
 type LessonRow = {
   id: string;
@@ -19,7 +13,25 @@ type LessonRow = {
   note: string | null;
 };
 
+type StudentRow = {
+  id: string;
+  first_name: string;
+  last_name: string | null;
+  subject: Subject;
+};
+
 export const scheduleStorageMode = supabase ? 'online' : 'local';
+
+export const INITIAL_STUDENTS: Student[] = [
+  { id: 'student-1', firstName: 'Ярослав', lastName: '', subject: 'english' },
+  { id: 'student-2', firstName: 'Маша', lastName: '', subject: 'english' },
+  { id: 'student-3', firstName: 'Даша', lastName: '', subject: 'english' },
+  { id: 'student-4', firstName: 'Артём', lastName: '', subject: 'physics' },
+  { id: 'student-5', firstName: 'Катя', lastName: '1', subject: 'physics' },
+  { id: 'student-6', firstName: 'Катя', lastName: '2', subject: 'physics' },
+  { id: 'student-7', firstName: 'Миша', lastName: '', subject: 'physics' },
+  { id: 'student-8', firstName: 'Соня', lastName: '', subject: 'physics' },
+];
 
 export const INITIAL_LESSONS: Lesson[] = [
   {
@@ -53,6 +65,68 @@ export function addDays(isoDate: string, amount: number) {
   const date = new Date(`${isoDate}T12:00:00`);
   date.setDate(date.getDate() + amount);
   return toIsoDate(date);
+}
+
+export async function loadStudents(): Promise<Student[]> {
+  if (!supabase) {
+    return readLocalStudents();
+  }
+
+  const { data, error } = await supabase
+    .from('students')
+    .select('id, first_name, last_name, subject')
+    .order('subject', { ascending: true })
+    .order('first_name', { ascending: true })
+    .order('last_name', { ascending: true });
+
+  if (error) {
+    return readLocalStudents();
+  }
+
+  return (data ?? []).map(rowToStudent);
+}
+
+export async function saveStudent(student: Student): Promise<Student> {
+  if (!supabase) {
+    const students = readLocalStudents();
+    const nextStudents = sortStudents([
+      ...students.filter((item) => item.id !== student.id),
+      student,
+    ]);
+    writeLocalStudents(nextStudents);
+    return student;
+  }
+
+  const { data, error } = await supabase
+    .from('students')
+    .upsert(studentToRow(student), { onConflict: 'id' })
+    .select('id, first_name, last_name, subject')
+    .single();
+
+  if (error) {
+    const students = readLocalStudents();
+    const nextStudents = sortStudents([
+      ...students.filter((item) => item.id !== student.id),
+      student,
+    ]);
+    writeLocalStudents(nextStudents);
+    return student;
+  }
+
+  return rowToStudent(data);
+}
+
+export async function removeStudent(studentId: string): Promise<void> {
+  if (!supabase) {
+    writeLocalStudents(readLocalStudents().filter((student) => student.id !== studentId));
+    return;
+  }
+
+  const { error } = await supabase.from('students').delete().eq('id', studentId);
+
+  if (error) {
+    writeLocalStudents(readLocalStudents().filter((student) => student.id !== studentId));
+  }
 }
 
 export async function loadLessons(): Promise<Lesson[]> {
@@ -158,6 +232,19 @@ function writeLocalLessons(lessons: Lesson[]) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(sortLessons(lessons)));
 }
 
+function readLocalStudents() {
+  try {
+    const stored = localStorage.getItem(STUDENTS_STORAGE_KEY);
+    return stored ? (JSON.parse(stored) as Student[]) : INITIAL_STUDENTS;
+  } catch {
+    return INITIAL_STUDENTS;
+  }
+}
+
+function writeLocalStudents(students: Student[]) {
+  localStorage.setItem(STUDENTS_STORAGE_KEY, JSON.stringify(sortStudents(students)));
+}
+
 function lessonToRow(lesson: Lesson) {
   return {
     id: lesson.id,
@@ -166,6 +253,15 @@ function lessonToRow(lesson: Lesson) {
     lesson_date: lesson.date,
     lesson_time: lesson.time,
     note: lesson.note,
+  };
+}
+
+function studentToRow(student: Student) {
+  return {
+    id: student.id,
+    first_name: student.firstName,
+    last_name: student.lastName,
+    subject: student.subject,
   };
 }
 
@@ -180,10 +276,34 @@ function rowToLesson(row: LessonRow): Lesson {
   };
 }
 
+function rowToStudent(row: StudentRow): Student {
+  return {
+    id: row.id,
+    firstName: row.first_name,
+    lastName: row.last_name ?? '',
+    subject: row.subject,
+  };
+}
+
 function isSameSlot(first: Lesson, second: Lesson) {
   return first.date === second.date && first.time === second.time;
 }
 
 function sortLessons(lessons: Lesson[]) {
   return [...lessons].sort((first, second) => `${first.date}${first.time}`.localeCompare(`${second.date}${second.time}`));
+}
+
+function sortStudents(students: Student[]) {
+  return [...students].sort((first, second) => {
+    const subjectOrder = first.subject.localeCompare(second.subject);
+    if (subjectOrder !== 0) {
+      return subjectOrder;
+    }
+
+    return formatStudentName(first).localeCompare(formatStudentName(second), 'ru');
+  });
+}
+
+function formatStudentName(student: Student) {
+  return [student.firstName, student.lastName].filter(Boolean).join(' ');
 }

@@ -659,10 +659,108 @@ p {
   color: #fff9e8;
 }
 
+.link-button {
+  width: max-content;
+  min-height: 34px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #7b501b;
+  padding: 0;
+  font-weight: 900;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+.link-button:hover {
+  color: #a66e22;
+}
+
 .danger-button {
   margin-right: auto;
   border-color: rgba(139, 61, 44, 0.34);
   color: #8b3d2c;
+}
+
+.student-modal {
+  width: min(760px, 100%);
+}
+
+.student-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 12px;
+  border: 1px solid rgba(172, 126, 47, 0.22);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.42);
+  padding: 12px;
+}
+
+.student-form-grid {
+  display: grid;
+  grid-template-columns: minmax(130px, 1fr) minmax(130px, 1fr) minmax(130px, 0.8fr);
+  gap: 12px;
+}
+
+.student-lists {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.student-group {
+  min-width: 0;
+  border: 1px solid rgba(172, 126, 47, 0.24);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.34);
+  padding: 12px;
+}
+
+.student-group h3 {
+  margin: 0 0 10px;
+  color: #5d4631;
+  font-size: 15px;
+}
+
+.student-group ul {
+  display: grid;
+  gap: 7px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.student-group li {
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border: 1px solid rgba(177, 132, 52, 0.22);
+  border-radius: 8px;
+  background: rgba(255, 251, 240, 0.78);
+  padding: 4px 5px 4px 10px;
+}
+
+.student-group li span {
+  min-width: 0;
+  color: #241914;
+  font-weight: 900;
+  overflow-wrap: anywhere;
+}
+
+.student-group li .icon-button {
+  flex: 0 0 auto;
+  color: #8b3d2c;
+}
+
+.empty-students {
+  border: 1px dashed rgba(177, 132, 52, 0.36);
+  border-radius: 8px;
+  color: #8a6022;
+  padding: 12px;
+  font-weight: 800;
 }
 
 @media (max-width: 1180px) {
@@ -762,6 +860,15 @@ p {
   }
 
   .modal-row {
+    grid-template-columns: 1fr;
+  }
+
+  .student-form {
+    grid-template-columns: 1fr;
+  }
+
+  .student-form-grid,
+  .student-lists {
     grid-template-columns: 1fr;
   }
 }

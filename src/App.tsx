@@ -1,16 +1,20 @@
 import { FormEvent, useEffect, useMemo, useState } from 'react';
-import { ChevronLeft, ChevronRight, Edit3, KeyRound, LogOut, Plus, RefreshCw, Save, Sparkles, Trash2, X } from 'lucide-react';
-import type { DraftLesson, Lesson, Subject } from './types';
+import { ChevronLeft, ChevronRight, Edit3, KeyRound, LogOut, Plus, RefreshCw, Save, Sparkles, Trash2, UserPlus, Users, X } from 'lucide-react';
+import type { DraftLesson, DraftStudent, Lesson, Student, Subject } from './types';
 import zhongliTeacher from './assets/zhongli-teacher-glasses.png';
 import {
   addDays,
   getTodayIso,
   loadLessons,
+  loadStudents,
   removeLesson,
+  removeStudent,
   saveLesson as saveLessonToStorage,
   saveLessons,
+  saveStudent as saveStudentToStorage,
   scheduleStorageMode,
 } from './scheduleStorage';
+import { supabase } from './supabaseClient';
 
 const dayFormatter = new Intl.DateTimeFormat('ru-RU', { weekday: 'short' });
 const dateFormatter = new Intl.DateTimeFormat('ru-RU', { day: '2-digit', month: '2-digit' });
@@ -24,17 +28,9 @@ const DISPLAY_HOURS = Array.from({ length: 12 }, (_, index) => index + 9);
 const TIME_OPTIONS = DISPLAY_HOURS.flatMap((hour) => ['00', '20', '40'].map((minutes) => `${String(hour).padStart(2, '0')}:${minutes}`)).filter(
   (time) => time <= '20:00',
 );
-const AUTH_LOGIN = 'Zhongli';
-const AUTH_PASSWORD = 'LapisDei';
-const AUTH_STORAGE_KEY = 'golden-schedule-authenticated';
 const SUBJECT_LABELS: Record<Subject, string> = {
   english: 'Английский',
   physics: 'Физика',
-};
-
-const STUDENTS_BY_SUBJECT: Record<Subject, string[]> = {
-  english: ['Ярослав', 'Маша', 'Даша'],
-  physics: ['Артём', 'Катя 1', 'Катя 2', 'Миша', 'Соня'],
 };
 
 function startOfWeek(isoDate: string) {
@@ -66,18 +62,46 @@ function createEmptyLesson(date: string, time: string): DraftLesson {
   };
 }
 
+function createEmptyStudent(): DraftStudent {
+  return {
+    firstName: '',
+    lastName: '',
+    subject: 'english',
+  };
+}
+
+function formatStudentName(student: Student | DraftStudent) {
+  return [student.firstName.trim(), student.lastName.trim()].filter(Boolean).join(' ');
+}
+
 function sortLessons(lessons: Lesson[]) {
   return [...lessons].sort((first, second) => `${first.date}${first.time}`.localeCompare(`${second.date}${second.time}`));
 }
 
+function sortStudents(students: Student[]) {
+  return [...students].sort((first, second) => {
+    const subjectOrder = first.subject.localeCompare(second.subject);
+    if (subjectOrder !== 0) {
+      return subjectOrder;
+    }
+
+    return formatStudentName(first).localeCompare(formatStudentName(second), 'ru');
+  });
+}
+
 export function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState(() => localStorage.getItem(AUTH_STORAGE_KEY) === 'true');
-  const [login, setLogin] = useState('');
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAuthLoading, setIsAuthLoading] = useState(true);
+  const [isAuthSubmitting, setIsAuthSubmitting] = useState(false);
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [authError, setAuthError] = useState('');
   const [weekStart, setWeekStart] = useState(() => startOfWeek(getTodayIso()));
   const [lessons, setLessons] = useState<Lesson[]>([]);
+  const [students, setStudents] = useState<Student[]>([]);
   const [draft, setDraft] = useState<DraftLesson | null>(null);
+  const [studentDraft, setStudentDraft] = useState<DraftStudent>(() => createEmptyStudent());
+  const [isStudentManagerOpen, setIsStudentManagerOpen] = useState(false);
   const [draggedLessonId, setDraggedLessonId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -97,16 +121,69 @@ export function App() {
     }
   }
 
+  function clearPrivateState() {
+    setLessons([]);
+    setStudents([]);
+    setDraft(null);
+    setIsStudentManagerOpen(false);
+    setDraggedLessonId(null);
+    setStatusMessage('');
+  }
+
+  async function refreshStudents() {
+    try {
+      const loadedStudents = await loadStudents();
+      setStudents(sortStudents(loadedStudents));
+    } catch {
+      setStudents([]);
+    }
+  }
+
+  useEffect(() => {
+    let isMounted = true;
+
+    if (!supabase) {
+      setIsAuthenticated(true);
+      setIsAuthLoading(false);
+      return;
+    }
+
+    supabase.auth.getSession().then(({ data }) => {
+      if (!isMounted) {
+        return;
+      }
+
+      setIsAuthenticated(Boolean(data.session));
+      setIsAuthLoading(false);
+    });
+
+    const { data } = supabase.auth.onAuthStateChange((_event, session) => {
+      setIsAuthenticated(Boolean(session));
+      setIsAuthLoading(false);
+
+      if (!session) {
+        clearPrivateState();
+      }
+    });
+
+    return () => {
+      isMounted = false;
+      data.subscription.unsubscribe();
+    };
+  }, []);
+
   useEffect(() => {
     if (!isAuthenticated) {
       return;
     }
 
     void refreshLessons();
+    void refreshStudents();
 
     function refreshOnFocus() {
       if (scheduleStorageMode === 'online') {
         void refreshLessons();
+        void refreshStudents();
       }
     }
 
@@ -127,14 +204,24 @@ export function App() {
     }, {});
   }, [lessons]);
 
+  const studentsBySubject = useMemo(() => {
+    return students.reduce<Record<Subject, Student[]>>(
+      (groups, student) => {
+        groups[student.subject] = [...groups[student.subject], student];
+        return groups;
+      },
+      { english: [], physics: [] },
+    );
+  }, [students]);
+
   const studentOptions = useMemo(() => {
     if (!draft) {
       return [];
     }
 
-    const subjectStudents = STUDENTS_BY_SUBJECT[draft.subject];
+    const subjectStudents = studentsBySubject[draft.subject].map(formatStudentName);
     return draft.student && !subjectStudents.includes(draft.student) ? [draft.student, ...subjectStudents] : subjectStudents;
-  }, [draft]);
+  }, [draft, studentsBySubject]);
 
   function openEditor(date: string, time: string) {
     const existingLesson = lessons.find((lesson) => lesson.date === date && lesson.time === time);
@@ -150,7 +237,7 @@ export function App() {
       return;
     }
 
-    const subjectStudents = STUDENTS_BY_SUBJECT[subject];
+    const subjectStudents = studentsBySubject[subject].map(formatStudentName);
     setDraft({
       ...draft,
       subject,
@@ -158,25 +245,44 @@ export function App() {
     });
   }
 
-  function handleLogin(event: FormEvent<HTMLFormElement>) {
+  async function handleLogin(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    if (login.trim() === AUTH_LOGIN && password === AUTH_PASSWORD) {
-      localStorage.setItem(AUTH_STORAGE_KEY, 'true');
+    if (!supabase) {
       setIsAuthenticated(true);
       setAuthError('');
       setPassword('');
       return;
     }
 
-    setAuthError('Контракт не найден. Проверь логин и пароль.');
+    setIsAuthSubmitting(true);
+    setAuthError('');
+
+    const { error } = await supabase.auth.signInWithPassword({
+      email: email.trim(),
+      password,
+    });
+
+    if (error) {
+      setAuthError('Не удалось войти. Проверь email и пароль.');
+    } else {
+      setPassword('');
+    }
+
+    setIsAuthSubmitting(false);
   }
 
-  function handleLogout() {
-    localStorage.removeItem(AUTH_STORAGE_KEY);
+  async function handleLogout() {
+    if (supabase) {
+      await supabase.auth.signOut();
+    }
+
     setIsAuthenticated(false);
-    setLessons([]);
-    setDraft(null);
+    clearPrivateState();
+  }
+
+  async function refreshEverything() {
+    await Promise.all([refreshLessons(), refreshStudents()]);
   }
 
   async function saveLesson(event: FormEvent<HTMLFormElement>) {
@@ -234,6 +340,70 @@ export function App() {
     }
   }
 
+  async function saveStudent(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    const normalizedStudent: Student = {
+      id: crypto.randomUUID(),
+      firstName: studentDraft.firstName.trim(),
+      lastName: studentDraft.lastName.trim(),
+      subject: studentDraft.subject,
+    };
+
+    if (!normalizedStudent.firstName) {
+      return;
+    }
+
+    const normalizedName = formatStudentName(normalizedStudent).toLocaleLowerCase('ru');
+    const hasDuplicate = students.some(
+      (student) => student.subject === normalizedStudent.subject && formatStudentName(student).toLocaleLowerCase('ru') === normalizedName,
+    );
+
+    if (hasDuplicate) {
+      setStatusMessage('Такой ученик уже есть в выбранном предмете.');
+      return;
+    }
+
+    const previousStudents = students;
+
+    setStudents(sortStudents([...students, normalizedStudent]));
+    setStudentDraft(createEmptyStudent());
+    setIsSaving(true);
+    setStatusMessage('');
+
+    try {
+      await saveStudentToStorage(normalizedStudent);
+      await refreshStudents();
+    } catch {
+      setStudents(previousStudents);
+      setStatusMessage('Не удалось сохранить ученика. Попробуй еще раз.');
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  async function deleteStudent(studentId: string) {
+    const deletedStudent = students.find((student) => student.id === studentId);
+    const previousStudents = students;
+
+    setStudents((currentStudents) => currentStudents.filter((student) => student.id !== studentId));
+    setStatusMessage('');
+    setIsSaving(true);
+
+    if (draft && deletedStudent && draft.student === formatStudentName(deletedStudent)) {
+      setDraft({ ...draft, student: '' });
+    }
+
+    try {
+      await removeStudent(studentId);
+    } catch {
+      setStudents(previousStudents);
+      setStatusMessage('Не удалось удалить ученика. Попробуй еще раз.');
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
   async function moveLesson(lessonId: string, date: string, time: string) {
     const movedLesson = lessons.find((lesson) => lesson.id === lessonId);
     const targetLesson = lessons.find((lesson) => lesson.id !== lessonId && lesson.date === date && lesson.time === time);
@@ -271,6 +441,22 @@ export function App() {
     }
   }
 
+  if (isAuthLoading) {
+    return (
+      <main className="app-shell login-shell">
+        <section className="login-card" aria-label="Проверка сессии">
+          <div className="login-copy">
+            <p className="eyebrow">
+              <Sparkles size={15} />
+              Золотой распорядок
+            </p>
+            <h1>Проверяю доступ</h1>
+          </div>
+        </section>
+      </main>
+    );
+  }
+
   if (!isAuthenticated) {
     return (
       <main className="app-shell login-shell">
@@ -285,17 +471,24 @@ export function App() {
 
           <form className="login-form" onSubmit={handleLogin}>
             <label>
-              Логин
-              <input autoFocus value={login} onChange={(event) => setLogin(event.target.value)} />
+              Email
+              <input
+                autoComplete="email"
+                autoFocus
+                type="email"
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                required
+              />
             </label>
             <label>
               Пароль
-              <input type="password" value={password} onChange={(event) => setPassword(event.target.value)} />
+              <input autoComplete="current-password" type="password" value={password} onChange={(event) => setPassword(event.target.value)} required />
             </label>
             {authError && <p className="auth-error">{authError}</p>}
-            <button type="submit" className="primary-button">
+            <button type="submit" className="primary-button" disabled={isAuthSubmitting}>
               <KeyRound size={17} />
-              Войти
+              {isAuthSubmitting ? 'Вхожу...' : 'Войти'}
             </button>
           </form>
         </section>
@@ -320,6 +513,9 @@ export function App() {
               <p className="hero-line">Контракты соблюдаются, уроки выполняются</p>
             </div>
             <div className="week-controls" aria-label="Навигация по неделям">
+              <button type="button" className="icon-button" onClick={() => setIsStudentManagerOpen(true)} title="Ученики">
+                <Users size={18} />
+              </button>
               <button type="button" className="icon-button" onClick={handleLogout} title="Выйти">
                 <LogOut size={17} />
               </button>
@@ -339,10 +535,11 @@ export function App() {
             <div>
               <strong>{currentWeekLabel}</strong>
               <span>{lessons.length} занятий</span>
+              <span>{students.length} учеников</span>
             </div>
             <div className="storage-status" data-mode={scheduleStorageMode}>
               <span>{scheduleStorageMode === 'online' ? 'Контракт записан' : 'Локальный черновик'}</span>
-              <button type="button" className="icon-button small-icon-button" onClick={() => void refreshLessons()} title="Обновить расписание">
+              <button type="button" className="icon-button small-icon-button" onClick={() => void refreshEverything()} title="Обновить данные">
                 <RefreshCw size={16} />
               </button>
             </div>
@@ -469,6 +666,11 @@ export function App() {
                 ))}
               </select>
             </label>
+            {!studentOptions.length && (
+              <button type="button" className="link-button" onClick={() => setIsStudentManagerOpen(true)}>
+                Добавить ученика
+              </button>
+            )}
 
             <div className="modal-row">
               <label>
@@ -510,6 +712,73 @@ export function App() {
               </button>
             </footer>
           </form>
+        </div>
+      )}
+
+      {isStudentManagerOpen && (
+        <div className="modal-backdrop" role="presentation" onMouseDown={() => setIsStudentManagerOpen(false)}>
+          <section className="lesson-modal student-modal" aria-label="Управление учениками" onMouseDown={(event) => event.stopPropagation()}>
+            <header>
+              <div>
+                <p>{students.length} учеников в списке</p>
+                <h2>Ученики</h2>
+              </div>
+              <button type="button" className="icon-button" onClick={() => setIsStudentManagerOpen(false)} title="Закрыть">
+                <X size={18} />
+              </button>
+            </header>
+
+            <form className="student-form" onSubmit={saveStudent}>
+              <div className="student-form-grid">
+                <label>
+                  Имя
+                  <input
+                    autoFocus
+                    value={studentDraft.firstName}
+                    onChange={(event) => setStudentDraft({ ...studentDraft, firstName: event.target.value })}
+                    required
+                  />
+                </label>
+                <label>
+                  Фамилия
+                  <input value={studentDraft.lastName} onChange={(event) => setStudentDraft({ ...studentDraft, lastName: event.target.value })} />
+                </label>
+                <label>
+                  Предмет
+                  <select value={studentDraft.subject} onChange={(event) => setStudentDraft({ ...studentDraft, subject: event.target.value as Subject })}>
+                    <option value="english">Английский</option>
+                    <option value="physics">Физика</option>
+                  </select>
+                </label>
+              </div>
+              <button type="submit" className="primary-button" disabled={isSaving}>
+                <UserPlus size={17} />
+                Добавить
+              </button>
+            </form>
+
+            <div className="student-lists">
+              {(Object.keys(SUBJECT_LABELS) as Subject[]).map((subject) => (
+                <section className="student-group" key={subject} aria-label={SUBJECT_LABELS[subject]}>
+                  <h3>{SUBJECT_LABELS[subject]}</h3>
+                  {studentsBySubject[subject].length ? (
+                    <ul>
+                      {studentsBySubject[subject].map((student) => (
+                        <li key={student.id}>
+                          <span>{formatStudentName(student)}</span>
+                          <button type="button" className="icon-button small-icon-button" onClick={() => void deleteStudent(student.id)} title="Удалить ученика">
+                            <Trash2 size={15} />
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="empty-students">Пока никого</p>
+                  )}
+                </section>
+              ))}
+            </div>
+          </section>
         </div>
       )}
     </main>
