@@ -1,5 +1,5 @@
 import { type CSSProperties, type FormEvent, useEffect, useMemo, useState } from 'react';
-import { ChevronLeft, ChevronRight, Edit3, KeyRound, LogOut, Plus, RefreshCw, Save, Sparkles, Trash2, UserPlus, Users, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, KeyRound, LogOut, Plus, RefreshCw, Save, Sparkles, Trash2, UserPlus, Users, X } from 'lucide-react';
 import type { DraftLesson, DraftStudent, Lesson, Student, Subject } from './types';
 import zhongliTeacher from './assets/zhongli-teacher-glasses.png';
 import {
@@ -710,7 +710,6 @@ export function App() {
                                 <strong>{lesson.student}</strong>
                                 {getLessonPrice(lesson) > 0 && <small className="lesson-price">{formatPrice(getLessonPrice(lesson))}</small>}
                                 {lesson.note && <small>{lesson.note}</small>}
-                                <Edit3 size={15} aria-hidden="true" />
                               </article>
                             ))}
                           </span>

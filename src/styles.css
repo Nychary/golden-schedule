@@ -531,10 +531,6 @@ p {
   line-height: 1.15;
 }
 
-.lesson-card svg {
-  color: #8a6022;
-}
-
 .subject-english .lesson-card,
 .lesson-card.subject-english {
   border-color: rgba(101, 74, 49, 0.72);
@@ -547,9 +543,7 @@ p {
 }
 
 .subject-english .lesson-card span,
-.subject-english .lesson-card svg,
-.lesson-card.subject-english span,
-.lesson-card.subject-english svg {
+.lesson-card.subject-english span {
   color: #654a31;
 }
 
