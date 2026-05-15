@@ -240,6 +240,10 @@ export function App() {
   )}`;
   const currentWeekLessons = useMemo(() => lessons.filter((lesson) => lesson.date >= weekDays[0] && lesson.date <= weekDays[6]), [lessons, weekDays]);
   const currentWeekLessonsCount = currentWeekLessons.length;
+  const currentWeekStudentsCount = useMemo(
+    () => new Set(currentWeekLessons.map((lesson) => getStudentLessonKey(lesson.subject, lesson.student))).size,
+    [currentWeekLessons],
+  );
 
   const lessonsBySlot = useMemo(() => {
     return lessons.reduce<Record<string, Lesson[]>>((slots, lesson) => {
@@ -636,7 +640,7 @@ export function App() {
               <strong>{currentWeekLabel}</strong>
               <span>{currentWeekLessonsCount} занятий</span>
               <span>{formatPrice(currentWeekLessonsTotal)}</span>
-              <span>{students.length} адептов</span>
+              <span>{currentWeekStudentsCount} адептов</span>
             </div>
             <div className="storage-status" data-mode={scheduleStorageMode}>
               <span>{scheduleStorageMode === 'online' ? 'Контракт записан' : 'Локальный черновик'}</span>
