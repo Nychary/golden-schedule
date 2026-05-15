@@ -355,9 +355,12 @@ p {
   min-width: 850px;
   pointer-events: none;
   background:
-    linear-gradient(90deg, rgba(255, 252, 244, 0.24) 0%, rgba(255, 252, 244, 0.36) 58%, rgba(255, 252, 244, 0.58) 100%),
-    linear-gradient(rgba(255, 252, 244, 0.18), rgba(255, 252, 244, 0.5)),
-    url("./assets/chibi-classroom-no-kinich.png") left bottom / auto 100% no-repeat;
+    linear-gradient(90deg, rgba(255, 252, 244, 0.22) 0%, rgba(255, 252, 244, 0.34) 58%, rgba(255, 252, 244, 0.56) 100%),
+    linear-gradient(180deg, rgba(236, 220, 181, 0.36), rgba(255, 252, 244, 0.2) 44%, rgba(255, 252, 244, 0.5)),
+    url("./assets/chibi-classroom-no-kinich.png") left top / auto min(100%, 945px) no-repeat,
+    url("./assets/chibi-classroom-no-kinich.png") center / cover no-repeat,
+    radial-gradient(circle at 18% 0%, rgba(215, 163, 61, 0.28), transparent 36%),
+    linear-gradient(180deg, #f0dfbf 0%, #fff5df 45%, #f8ead0 100%);
   opacity: 0.5;
 }
 
