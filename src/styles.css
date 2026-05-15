@@ -525,6 +525,12 @@ p {
   overflow-wrap: anywhere;
 }
 
+.lesson-card .lesson-price {
+  color: #3f2a16;
+  font-weight: 900;
+  line-height: 1.15;
+}
+
 .lesson-card svg {
   color: #8a6022;
 }
@@ -781,7 +787,7 @@ p {
 
 .student-form-grid {
   display: grid;
-  grid-template-columns: minmax(130px, 1fr) minmax(130px, 1fr) minmax(130px, 0.8fr);
+  grid-template-columns: minmax(120px, 1fr) minmax(120px, 1fr) minmax(120px, 0.8fr) minmax(96px, 0.65fr);
   gap: 12px;
 }
 
@@ -830,6 +836,33 @@ p {
   color: #241914;
   font-weight: 900;
   overflow-wrap: anywhere;
+}
+
+.student-price-field {
+  width: 108px;
+  display: grid;
+  gap: 3px;
+  color: #74501f;
+  font-size: 10px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.student-price-field span {
+  color: inherit;
+  font-size: inherit;
+  font-weight: inherit;
+}
+
+.student-price-field input {
+  width: 100%;
+  border: 1px solid rgba(172, 126, 47, 0.28);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.74);
+  color: #241914;
+  font: inherit;
+  font-size: 13px;
+  padding: 7px 8px;
 }
 
 .student-group li .icon-button {

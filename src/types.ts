@@ -5,6 +5,7 @@ export type Student = {
   firstName: string;
   lastName: string;
   subject: Subject;
+  pricePerLesson: number;
 };
 
 export type Lesson = {

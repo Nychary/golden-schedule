@@ -16,9 +16,13 @@ create table if not exists public.students (
   first_name text not null,
   last_name text not null default '',
   subject text not null check (subject in ('english', 'physics')),
+  price_per_lesson integer not null default 0,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+alter table public.students
+add column if not exists price_per_lesson integer not null default 0;
 
 create unique index if not exists students_subject_name_unique
 on public.students (subject, first_name, last_name);

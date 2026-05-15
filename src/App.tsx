@@ -23,6 +23,9 @@ const fullDateFormatter = new Intl.DateTimeFormat('ru-RU', {
   month: 'long',
   year: 'numeric',
 });
+const priceFormatter = new Intl.NumberFormat('ru-RU', {
+  maximumFractionDigits: 0,
+});
 
 const DISPLAY_HOURS = Array.from({ length: 12 }, (_, index) => index + 9);
 const HOUR_OPTIONS = DISPLAY_HOURS.map((hour) => String(hour).padStart(2, '0'));
@@ -92,11 +95,25 @@ function createEmptyStudent(): DraftStudent {
     firstName: '',
     lastName: '',
     subject: 'english',
+    pricePerLesson: 0,
   };
 }
 
 function formatStudentName(student: Student | DraftStudent) {
   return [student.firstName.trim(), student.lastName.trim()].filter(Boolean).join(' ');
+}
+
+function formatPrice(price: number) {
+  return `${priceFormatter.format(price)} моры`;
+}
+
+function getStudentLessonKey(subject: Subject, studentName: string) {
+  return `${subject}:${studentName.toLocaleLowerCase('ru')}`;
+}
+
+function normalizePrice(price: unknown) {
+  const normalizedPrice = Number(price);
+  return Number.isFinite(normalizedPrice) && normalizedPrice > 0 ? Math.round(normalizedPrice) : 0;
 }
 
 function sortLessons(lessons: Lesson[]) {
@@ -221,6 +238,8 @@ export function App() {
   const currentWeekLabel = `${dateFormatter.format(new Date(`${weekDays[0]}T12:00:00`))} - ${dateFormatter.format(
     new Date(`${weekDays[6]}T12:00:00`),
   )}`;
+  const currentWeekLessons = useMemo(() => lessons.filter((lesson) => lesson.date >= weekDays[0] && lesson.date <= weekDays[6]), [lessons, weekDays]);
+  const currentWeekLessonsCount = currentWeekLessons.length;
 
   const lessonsBySlot = useMemo(() => {
     return lessons.reduce<Record<string, Lesson[]>>((slots, lesson) => {
@@ -240,6 +259,15 @@ export function App() {
     );
   }, [students]);
 
+  const lessonPricesByStudent = useMemo(() => {
+    return new Map(students.map((student) => [getStudentLessonKey(student.subject, formatStudentName(student)), student.pricePerLesson]));
+  }, [students]);
+
+  const currentWeekLessonsTotal = useMemo(
+    () => currentWeekLessons.reduce((total, lesson) => total + (lessonPricesByStudent.get(getStudentLessonKey(lesson.subject, lesson.student)) ?? 0), 0),
+    [currentWeekLessons, lessonPricesByStudent],
+  );
+
   const studentOptions = useMemo(() => {
     if (!draft) {
       return [];
@@ -248,6 +276,10 @@ export function App() {
     const subjectStudents = studentsBySubject[draft.subject].map(formatStudentName);
     return draft.student && !subjectStudents.includes(draft.student) ? [draft.student, ...subjectStudents] : subjectStudents;
   }, [draft, studentsBySubject]);
+
+  function getLessonPrice(lesson: Lesson) {
+    return lessonPricesByStudent.get(getStudentLessonKey(lesson.subject, lesson.student)) ?? 0;
+  }
 
   function openEditor(date: string, time: string) {
     const existingLesson = lessons.find((lesson) => lesson.date === date && lesson.time === time);
@@ -393,6 +425,7 @@ export function App() {
       firstName: studentDraft.firstName.trim(),
       lastName: studentDraft.lastName.trim(),
       subject: studentDraft.subject,
+      pricePerLesson: normalizePrice(studentDraft.pricePerLesson),
     };
 
     if (!normalizedStudent.firstName) {
@@ -405,7 +438,7 @@ export function App() {
     );
 
     if (hasDuplicate) {
-      setStatusMessage('Такой ученик уже есть в выбранном предмете.');
+      setStatusMessage('Такой адепт уже есть в выбранном предмете.');
       return;
     }
 
@@ -421,9 +454,31 @@ export function App() {
       await refreshStudents();
     } catch {
       setStudents(previousStudents);
-      setStatusMessage('Не удалось сохранить ученика. Попробуй еще раз.');
+      setStatusMessage('Не удалось сохранить адепта. Попробуй еще раз.');
     } finally {
       setIsSaving(false);
+    }
+  }
+
+  async function updateStudentPrice(studentId: string, price: number) {
+    const studentToUpdate = students.find((student) => student.id === studentId);
+
+    if (!studentToUpdate) {
+      return;
+    }
+
+    const updatedStudent = { ...studentToUpdate, pricePerLesson: normalizePrice(price) };
+    const previousStudents = students;
+
+    setStudents((currentStudents) => sortStudents(currentStudents.map((student) => (student.id === studentId ? updatedStudent : student))));
+    setStatusMessage('');
+
+    try {
+      await saveStudentToStorage(updatedStudent);
+      await refreshStudents();
+    } catch {
+      setStudents(previousStudents);
+      setStatusMessage('Не удалось сохранить цену адепта. Попробуй еще раз.');
     }
   }
 
@@ -443,7 +498,7 @@ export function App() {
       await removeStudent(studentId);
     } catch {
       setStudents(previousStudents);
-      setStatusMessage('Не удалось удалить ученика. Попробуй еще раз.');
+      setStatusMessage('Не удалось удалить адепта. Попробуй еще раз.');
     } finally {
       setIsSaving(false);
     }
@@ -558,7 +613,7 @@ export function App() {
               <p className="hero-line">Контракты соблюдаются, уроки выполняются</p>
             </div>
             <div className="week-controls" aria-label="Навигация по неделям">
-              <button type="button" className="icon-button" onClick={() => setIsStudentManagerOpen(true)} title="Ученики">
+              <button type="button" className="icon-button" onClick={() => setIsStudentManagerOpen(true)} title="Адепты">
                 <Users size={18} />
               </button>
               <button type="button" className="icon-button" onClick={handleLogout} title="Выйти">
@@ -579,8 +634,9 @@ export function App() {
           <section className="calendar-toolbar" aria-label="Текущая неделя">
             <div>
               <strong>{currentWeekLabel}</strong>
-              <span>{lessons.length} занятий</span>
-              <span>{students.length} учеников</span>
+              <span>{currentWeekLessonsCount} занятий</span>
+              <span>{formatPrice(currentWeekLessonsTotal)}</span>
+              <span>{students.length} адептов</span>
             </div>
             <div className="storage-status" data-mode={scheduleStorageMode}>
               <span>{scheduleStorageMode === 'online' ? 'Контракт записан' : 'Локальный черновик'}</span>
@@ -652,6 +708,7 @@ export function App() {
                                   {SUBJECT_LABELS[lesson.subject]} · {lesson.time}
                                 </span>
                                 <strong>{lesson.student}</strong>
+                                {getLessonPrice(lesson) > 0 && <small className="lesson-price">{formatPrice(getLessonPrice(lesson))}</small>}
                                 {lesson.note && <small>{lesson.note}</small>}
                                 <Edit3 size={15} aria-hidden="true" />
                               </article>
@@ -700,10 +757,10 @@ export function App() {
             </label>
 
             <label>
-              Ученик
+              Адепт
               <select value={draft.student} onChange={(event) => setDraft({ ...draft, student: event.target.value })} required>
                 <option value="" disabled>
-                  Выбери ученика
+                  Выбери адепта
                 </option>
                 {studentOptions.map((student) => (
                   <option value={student} key={student}>
@@ -714,7 +771,7 @@ export function App() {
             </label>
             {!studentOptions.length && (
               <button type="button" className="link-button" onClick={() => setIsStudentManagerOpen(true)}>
-                Добавить ученика
+                Добавить адепта
               </button>
             )}
 
@@ -806,11 +863,11 @@ export function App() {
 
       {isStudentManagerOpen && (
         <div className="modal-backdrop" role="presentation" onMouseDown={() => setIsStudentManagerOpen(false)}>
-          <section className="lesson-modal student-modal" aria-label="Управление учениками" onMouseDown={(event) => event.stopPropagation()}>
+          <section className="lesson-modal student-modal" aria-label="Управление адептами" onMouseDown={(event) => event.stopPropagation()}>
             <header>
               <div>
-                <p>{students.length} учеников в списке</p>
-                <h2>Ученики</h2>
+                <p>{students.length} адептов в списке</p>
+                <h2>Адепты</h2>
               </div>
               <button type="button" className="icon-button" onClick={() => setIsStudentManagerOpen(false)} title="Закрыть">
                 <X size={18} />
@@ -839,6 +896,16 @@ export function App() {
                     <option value="physics">Физика</option>
                   </select>
                 </label>
+                <label>
+                  Цена
+                  <input
+                    type="number"
+                    min="0"
+                    step="50"
+                    value={studentDraft.pricePerLesson}
+                    onChange={(event) => setStudentDraft({ ...studentDraft, pricePerLesson: normalizePrice(event.target.value) })}
+                  />
+                </label>
               </div>
               <button type="submit" className="primary-button" disabled={isSaving}>
                 <UserPlus size={17} />
@@ -855,7 +922,23 @@ export function App() {
                       {studentsBySubject[subject].map((student) => (
                         <li key={student.id}>
                           <span>{formatStudentName(student)}</span>
-                          <button type="button" className="icon-button small-icon-button" onClick={() => void deleteStudent(student.id)} title="Удалить ученика">
+                          <label className="student-price-field">
+                            <span>Цена</span>
+                            <input
+                              type="number"
+                              min="0"
+                              step="50"
+                              value={student.pricePerLesson}
+                              onChange={(event) => {
+                                const pricePerLesson = normalizePrice(event.target.value);
+                                setStudents((currentStudents) =>
+                                  sortStudents(currentStudents.map((currentStudent) => (currentStudent.id === student.id ? { ...currentStudent, pricePerLesson } : currentStudent))),
+                                );
+                              }}
+                              onBlur={(event) => void updateStudentPrice(student.id, normalizePrice(event.target.value))}
+                            />
+                          </label>
+                          <button type="button" className="icon-button small-icon-button" onClick={() => void deleteStudent(student.id)} title="Удалить адепта">
                             <Trash2 size={15} />
                           </button>
                         </li>

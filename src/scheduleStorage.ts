@@ -18,11 +18,12 @@ type StudentRow = {
   first_name: string;
   last_name: string | null;
   subject: Subject;
+  price_per_lesson?: number | null;
 };
 
 export const scheduleStorageMode = supabase ? 'online' : 'local';
 
-export const INITIAL_STUDENTS: Student[] = [
+export const INITIAL_STUDENTS: Student[] = ([
   { id: 'student-1', firstName: 'Ярослав', lastName: '', subject: 'english' },
   { id: 'student-2', firstName: 'Маша', lastName: '', subject: 'english' },
   { id: 'student-3', firstName: 'Даша', lastName: '', subject: 'english' },
@@ -31,7 +32,7 @@ export const INITIAL_STUDENTS: Student[] = [
   { id: 'student-6', firstName: 'Катя', lastName: '2', subject: 'physics' },
   { id: 'student-7', firstName: 'Миша', lastName: '', subject: 'physics' },
   { id: 'student-8', firstName: 'Соня', lastName: '', subject: 'physics' },
-];
+] as Array<Omit<Student, 'pricePerLesson'>>).map((student) => ({ ...student, pricePerLesson: 0 }));
 
 export const INITIAL_LESSONS: Lesson[] = [
   {
@@ -74,7 +75,7 @@ export async function loadStudents(): Promise<Student[]> {
 
   const { data, error } = await supabase
     .from('students')
-    .select('id, first_name, last_name, subject')
+    .select('id, first_name, last_name, subject, price_per_lesson')
     .order('subject', { ascending: true })
     .order('first_name', { ascending: true })
     .order('last_name', { ascending: true });
@@ -100,7 +101,7 @@ export async function saveStudent(student: Student): Promise<Student> {
   const { data, error } = await supabase
     .from('students')
     .upsert(studentToRow(student), { onConflict: 'id' })
-    .select('id, first_name, last_name, subject')
+    .select('id, first_name, last_name, subject, price_per_lesson')
     .single();
 
   if (error) {
@@ -235,7 +236,7 @@ function writeLocalLessons(lessons: Lesson[]) {
 function readLocalStudents() {
   try {
     const stored = localStorage.getItem(STUDENTS_STORAGE_KEY);
-    return stored ? (JSON.parse(stored) as Student[]) : INITIAL_STUDENTS;
+    return stored ? (JSON.parse(stored) as Student[]).map(normalizeStudent) : INITIAL_STUDENTS;
   } catch {
     return INITIAL_STUDENTS;
   }
@@ -262,6 +263,7 @@ function studentToRow(student: Student) {
     first_name: student.firstName,
     last_name: student.lastName,
     subject: student.subject,
+    price_per_lesson: student.pricePerLesson,
   };
 }
 
@@ -282,7 +284,20 @@ function rowToStudent(row: StudentRow): Student {
     firstName: row.first_name,
     lastName: row.last_name ?? '',
     subject: row.subject,
+    pricePerLesson: normalizePrice(row.price_per_lesson),
   };
+}
+
+function normalizeStudent(student: Student): Student {
+  return {
+    ...student,
+    pricePerLesson: normalizePrice(student.pricePerLesson),
+  };
+}
+
+function normalizePrice(price: unknown) {
+  const normalizedPrice = Number(price);
+  return Number.isFinite(normalizedPrice) && normalizedPrice > 0 ? Math.round(normalizedPrice) : 0;
 }
 
 function isSameSlot(first: Lesson, second: Lesson) {
