@@ -246,6 +246,7 @@ p {
 
 .icon-button,
 .today-button,
+.price-toggle-button,
 .primary-button,
 .danger-button {
   min-height: 42px;
@@ -267,8 +268,19 @@ p {
   font-weight: 900;
 }
 
+.price-toggle-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 14px;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
 .icon-button:hover,
 .today-button:hover,
+.price-toggle-button:hover,
 .primary-button:hover {
   border-color: #d7a33d;
   background: #fff8e6;

@@ -1,5 +1,5 @@
 import { type CSSProperties, type FormEvent, useEffect, useMemo, useState } from 'react';
-import { ChevronLeft, ChevronRight, KeyRound, LogOut, Plus, RefreshCw, Save, Sparkles, Trash2, UserPlus, Users, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Eye, EyeOff, KeyRound, LogOut, Plus, RefreshCw, Save, Sparkles, Trash2, UserPlus, Users, X } from 'lucide-react';
 import type { DraftLesson, DraftStudent, Lesson, Student, Subject } from './types';
 import zhongliTeacher from './assets/zhongli-teacher-glasses.png';
 import {
@@ -145,6 +145,7 @@ export function App() {
   const [lessonRepeatMode, setLessonRepeatMode] = useState<LessonRepeatMode>('single');
   const [studentDraft, setStudentDraft] = useState<DraftStudent>(() => createEmptyStudent());
   const [isStudentManagerOpen, setIsStudentManagerOpen] = useState(false);
+  const [showPrices, setShowPrices] = useState(false);
   const [draggedLessonId, setDraggedLessonId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -617,6 +618,15 @@ export function App() {
               <p className="hero-line">Контракты соблюдаются, уроки выполняются</p>
             </div>
             <div className="week-controls" aria-label="Навигация по неделям">
+              <button
+                type="button"
+                className="price-toggle-button"
+                onClick={() => setShowPrices((currentValue) => !currentValue)}
+                title={showPrices ? 'Скрыть цены' : 'Показать цены'}
+              >
+                {showPrices ? <EyeOff size={17} /> : <Eye size={17} />}
+                {showPrices ? 'Скрыть цены' : 'Показать цены'}
+              </button>
               <button type="button" className="icon-button" onClick={() => setIsStudentManagerOpen(true)} title="Адепты">
                 <Users size={18} />
               </button>
@@ -639,7 +649,7 @@ export function App() {
             <div>
               <strong>{currentWeekLabel}</strong>
               <span>{currentWeekLessonsCount} занятий</span>
-              <span>{formatPrice(currentWeekLessonsTotal)}</span>
+              {showPrices && <span>{formatPrice(currentWeekLessonsTotal)}</span>}
               <span>{currentWeekStudentsCount} адептов</span>
             </div>
             <div className="storage-status" data-mode={scheduleStorageMode}>
@@ -712,7 +722,7 @@ export function App() {
                                   {SUBJECT_LABELS[lesson.subject]} · {lesson.time}
                                 </span>
                                 <strong>{lesson.student}</strong>
-                                {getLessonPrice(lesson) > 0 && <small className="lesson-price">{formatPrice(getLessonPrice(lesson))}</small>}
+                                {showPrices && getLessonPrice(lesson) > 0 && <small className="lesson-price">{formatPrice(getLessonPrice(lesson))}</small>}
                                 {lesson.note && <small>{lesson.note}</small>}
                               </article>
                             ))}
