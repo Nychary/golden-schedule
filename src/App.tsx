@@ -625,7 +625,29 @@ export function App() {
                 title={showPrices ? 'Скрыть цены' : 'Показать цены'}
                 aria-label={showPrices ? 'Скрыть цены' : 'Показать цены'}
               >
-                <span className="mora-icon" aria-hidden="true" />
+                <svg className="mora-icon" viewBox="0 0 64 64" aria-hidden="true">
+                  <defs>
+                    <linearGradient id="mora-coin-fill" x1="16" y1="8" x2="48" y2="58" gradientUnits="userSpaceOnUse">
+                      <stop offset="0" stopColor="#fff3a4" />
+                      <stop offset="0.42" stopColor="#e7bb42" />
+                      <stop offset="1" stopColor="#8d5517" />
+                    </linearGradient>
+                    <linearGradient id="mora-mark-fill" x1="24" y1="10" x2="42" y2="52" gradientUnits="userSpaceOnUse">
+                      <stop offset="0" stopColor="#fff7bd" />
+                      <stop offset="0.55" stopColor="#dca93a" />
+                      <stop offset="1" stopColor="#7b4514" />
+                    </linearGradient>
+                  </defs>
+                  <circle cx="32" cy="32" r="28" fill="url(#mora-coin-fill)" stroke="#7b4514" strokeWidth="3" />
+                  <circle cx="32" cy="32" r="22" fill="none" stroke="#fff2a7" strokeWidth="2.4" opacity="0.62" />
+                  <path className="mora-star" d="M32 9 37 25 54 27 40 37 44 53 32 44 20 53 24 37 10 27 27 25Z" />
+                  <path className="mora-petal mora-petal-top" d="M32 8C41 22 39 33 32 41 25 33 23 22 32 8Z" />
+                  <path className="mora-petal mora-petal-left" d="M9 38C24 27 36 28 43 36 33 42 22 45 9 38Z" />
+                  <path className="mora-petal mora-petal-right" d="M55 38C40 27 28 28 21 36 31 42 42 45 55 38Z" />
+                  <path className="mora-cut" d="M32 19C36 27 35 32 32 36 29 32 28 27 32 19Z" />
+                  <path className="mora-cut" d="M19 38C28 33 34 34 38 37 31 40 25 41 19 38Z" />
+                  <path className="mora-cut" d="M45 38C36 33 30 34 26 37 33 40 39 41 45 38Z" />
+                </svg>
               </button>
               <button type="button" className="icon-button" onClick={() => setIsStudentManagerOpen(true)} title="Адепты">
                 <Users size={18} />
