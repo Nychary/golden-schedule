@@ -1,5 +1,5 @@
 import { type CSSProperties, type FormEvent, useEffect, useMemo, useState } from 'react';
-import { ChevronLeft, ChevronRight, Eye, EyeOff, KeyRound, LogOut, Plus, RefreshCw, Save, Sparkles, Trash2, UserPlus, Users, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, KeyRound, LogOut, Plus, RefreshCw, Save, Sparkles, Trash2, UserPlus, Users, X } from 'lucide-react';
 import type { DraftLesson, DraftStudent, Lesson, Student, Subject } from './types';
 import zhongliTeacher from './assets/zhongli-teacher-glasses.png';
 import {
@@ -623,9 +623,9 @@ export function App() {
                 className="price-toggle-button"
                 onClick={() => setShowPrices((currentValue) => !currentValue)}
                 title={showPrices ? 'Скрыть цены' : 'Показать цены'}
+                aria-label={showPrices ? 'Скрыть цены' : 'Показать цены'}
               >
-                {showPrices ? <EyeOff size={17} /> : <Eye size={17} />}
-                {showPrices ? 'Скрыть цены' : 'Показать цены'}
+                <span className="mora-icon" aria-hidden="true" />
               </button>
               <button type="button" className="icon-button" onClick={() => setIsStudentManagerOpen(true)} title="Адепты">
                 <Users size={18} />
